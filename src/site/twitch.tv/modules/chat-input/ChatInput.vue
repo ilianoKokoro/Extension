@@ -12,7 +12,7 @@
 
 <!-- eslint-disable prettier/prettier -->
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useMagicKeys } from "@vueuse/core";
 import { useStore } from "@/store/main";
 import { REACT_TYPEOF_TOKEN } from "@/common/Constant";
@@ -167,6 +167,10 @@ function findMatchingTokens(str: string, mode: "tab" | "colon" = "tab", limit?: 
 
 	return matches;
 }
+
+onMounted(() => {
+	window.addEventListener("keydown", handleCapturedKeyDown, { capture: true });
+});
 
 function handleTabPress(ev: KeyboardEvent | null, isBackwards?: boolean): void {
 	const component = props.instance.component;
@@ -410,6 +414,28 @@ function onKeyDown(ev: KeyboardEvent) {
 				ev.stopImmediatePropagation();
 			}
 			break;
+	}
+}
+
+function handleCapturedKeyDown(ev: KeyboardEvent) {
+	// Prevents autocompletion on Enter when completion mode is -> always on
+	if (ev.key === "Enter") {
+		if (autocompletionMode.value !== 2) {
+			return;
+		}
+
+		const target = ev.target as HTMLElement;
+		const chatInner = document.querySelector(".seventv-chat-input-textarea")?.children[0]?.children[0]?.children[0]
+			?.lastChild as HTMLElement;
+
+		// Checks if the chat input is focused
+		if (!chatInner || chatInner !== target) return;
+
+		ev.preventDefault();
+		ev.stopPropagation();
+		// Send message
+		const chatButton = document.querySelector("button[data-a-target='chat-send-button']") as HTMLButtonElement;
+		chatButton.click();
 	}
 }
 
