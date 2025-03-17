@@ -12,8 +12,8 @@
 
 <!-- eslint-disable prettier/prettier -->
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
-import { useMagicKeys } from "@vueuse/core";
+import { onUnmounted, ref, watch } from "vue";
+import { useEventListener, useMagicKeys } from "@vueuse/core";
 import { useStore } from "@/store/main";
 import { REACT_TYPEOF_TOKEN } from "@/common/Constant";
 import { imageHostToSrcset } from "@/common/Image";
@@ -60,12 +60,12 @@ const emotes = useChatEmotes(ctx);
 const cosmetics = useCosmetics(store.identity?.id ?? "");
 const ua = useUserAgent();
 
-const autocompletionMode = useConfig("chat_input.autocomplete");
-const shouldColonCompleteEmoji = useConfig("chat_input.autocomplete.emoji");
+const autocompletionMode = useConfig("chat_input.autocomplete.colon");
+const shouldColonCompleteEmoji = useConfig("chat_input.autocomplete.colon.emoji");
 const shouldAutocompleteChatters = useConfig("chat_input.autocomplete.chatters");
 const shouldRenderAutocompleteCarousel = useConfig("chat_input.autocomplete.carousel");
 const mayUseControlEnter = useConfig("chat_input.spam.rapid_fire_send");
-const colonCompletionMode = useConfig<number>("chat_input.autocomplete.mode");
+const colonCompletionMode = useConfig<number>("chat_input.autocomplete.colon.mode");
 const tabCompletionMode = useConfig<number>("chat_input.autocomplete.carousel.mode");
 
 const providers = ref<Record<string, Twitch.ChatAutocompleteProvider>>({});
@@ -93,6 +93,8 @@ const history = ref<Twitch.ChatSlateLeaf[][]>([]);
 const historyLocation = ref(-1);
 
 const { ctrl: isCtrl, shift: isShift } = useMagicKeys();
+
+useEventListener(window, "keydown", handleCapturedKeyDown, { capture: true });
 
 function findMatchingTokens(str: string, mode: "tab" | "colon" = "tab", limit?: number): TabToken[] {
 	const usedTokens = new Set<string>();
@@ -173,10 +175,6 @@ function findMatchingTokens(str: string, mode: "tab" | "colon" = "tab", limit?: 
 
 	return matches;
 }
-
-onMounted(() => {
-	window.addEventListener("keydown", handleCapturedKeyDown, { capture: true });
-});
 
 function handleTabPress(ev: KeyboardEvent | null, isBackwards?: boolean): void {
 	const component = props.instance.component;
@@ -426,12 +424,9 @@ function onKeyDown(ev: KeyboardEvent) {
 function handleCapturedKeyDown(ev: KeyboardEvent) {
 	// Prevents autocompletion on Enter when completion mode is -> always on
 	if (ev.key === "Enter") {
-		const { component } = props.instance;
-		const { componentRef } = component;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const componentProps: any = componentRef.props;
-		const activeTray: Twitch.ChatTray = componentProps.tray;
-		const slate = componentRef.state?.slateEditor;
+		const component = props.instance.component as Twitch.ChatAutocompleteComponent;
+		const activeTray: Twitch.ChatTray = component.props.tray;
+		const slate = component.componentRef.state?.slateEditor;
 
 		// Exit if autocomplete is not always on or anything needed is unavailable
 		if (
@@ -451,6 +446,7 @@ function handleCapturedKeyDown(ev: KeyboardEvent) {
 
 		// Close autocomplete tray by adding a space
 		const cursorLocation = slate.selection.anchor;
+
 		let currentNode: { children: Twitch.ChatSlateLeaf[] } & Partial<Twitch.ChatSlateLeaf> = slate;
 
 		for (const index of cursorLocation.path) {
@@ -462,7 +458,9 @@ function handleCapturedKeyDown(ev: KeyboardEvent) {
 			currentNode.type === "text" && typeof currentNode.text === "string"
 				? getSearchRange(currentNode.text, cursorLocation.offset)[1]
 				: 0;
+		const newCursor = { path: cursorLocation.path, offset: currentWordEnd };
 
+		slate.apply({ type: "set_selection", newProperties: { anchor: newCursor, focus: newCursor } });
 		slate.apply({
 			type: "insert_text",
 			path: cursorLocation.path,
