@@ -1,8 +1,9 @@
 ### 3.1.6.2000
 
+-   Fixed the profile redirection when clicking on a user on the Twitch dashboard
+-   Fixed some keyboard shortcuts not working
 -   Added an Always On autocompletion option for emotes
 -   Fixed an issue where the default highlight sound would not play on Firefox
--   Fixed the profile redirection when clicking on a user on the Twitch dashboard
 
 ### 3.1.6.1000
 
