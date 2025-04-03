@@ -19,6 +19,7 @@
 						<div name="pattern" class="use-virtual-input" tabindex="0" @click="onInputFocus(h, 'pattern')">
 							<span>{{ h.pattern }}</span>
 							<FormInput
+								v-if="!isDefaultHighlight(h)"
 								:ref="(c) => inputs.pattern.set(h, c as InstanceType<typeof FormInput>)"
 								v-model="h.pattern"
 								@blur="onInputBlur(h, 'pattern')"
@@ -43,6 +44,7 @@
 						<!-- Checkbox: RegExp -->
 						<div name="is-regexp" class="centered">
 							<FormCheckbox
+								v-if="!isDefaultHighlight(h)"
 								:checked="!!h.regexp"
 								:disabled="h.username"
 								@update:checked="onRegExpStateChange(h, $event)"
@@ -52,6 +54,7 @@
 						<!-- Checkbox: Case Sensitive -->
 						<div name="case-sensitive" class="centered">
 							<FormCheckbox
+								v-if="!isDefaultHighlight(h)"
 								:checked="!!h.caseSensitive"
 								:disabled="h.username"
 								@update:checked="onCaseSensitiveChange(h, $event)"
@@ -93,7 +96,12 @@
 								</div>
 							</button>
 
-							<CloseIcon v-tooltip="'Remove'" tabindex="0" @click="onDeleteHighlight(h)" />
+							<CloseIcon
+								v-if="!isDefaultHighlight(h)"
+								v-tooltip="'Remove'"
+								tabindex="0"
+								@click="onDeleteHighlight(h)"
+							/>
 						</div>
 					</div>
 				</template>
@@ -349,6 +357,10 @@ globalBadges!.forEach((badgeObject) => {
 		globalBadgeObjects.push(value);
 	});
 });
+
+function isDefaultHighlight(h: HighlightDef): boolean {
+	return h.id === "~mention" || h.id === "~reply";
+}
 
 function onInputFocus(h: HighlightDef, inputName: keyof typeof inputs): void {
 	const input = inputs[inputName].get(h);
