@@ -167,6 +167,8 @@ const props = defineProps<{
 	target: ChatUser;
 }>();
 
+const TWITCH_ROOT_URL = "https://twitch.tv";
+
 const emit = defineEmits<{
 	(e: "close"): void;
 	(e: "mount-handle", handle: HTMLDivElement): void;
@@ -245,10 +247,10 @@ function getActiveTimeline(): Record<string, ChatMessage[]> {
 }
 
 async function fetchMessageLogs(after?: ChatMessage): Promise<ChatMessage[]> {
-	if (!data.targetUser || !apollo || data.activeTab !== "messages") return [];
+	if (!data.targetUser || !apollo.value || data.activeTab !== "messages") return [];
 
 	const cursor = after ? data.messageCursors.get(after) : undefined;
-	const msgResp = await apollo
+	const msgResp = await apollo.value
 		.query<twitchUserCardMessagesQuery.Response, twitchUserCardMessagesQuery.Variables>({
 			query: twitchUserCardMessagesQuery,
 			variables: {
@@ -275,9 +277,9 @@ async function fetchMessageLogs(after?: ChatMessage): Promise<ChatMessage[]> {
 }
 
 async function fetchModeratorData(): Promise<void> {
-	if (!data.targetUser || !apollo) return;
+	if (!data.targetUser || !apollo.value) return;
 
-	const resp = await apollo
+	const resp = await apollo.value
 		.query<twitchUserCardModLogsQuery.Response, twitchUserCardModLogsQuery.Variables>({
 			query: twitchUserCardModLogsQuery,
 			variables: {
@@ -440,7 +442,7 @@ function highlightUserMessages(): void {
 }
 
 function getProfileURL(): string {
-	return window.location.origin + "/" + props.target.username;
+	return `${TWITCH_ROOT_URL}/${props.target.username}`;
 }
 
 function formatDateToString(date?: string): string {
@@ -448,9 +450,9 @@ function formatDateToString(date?: string): string {
 }
 
 watchEffect(async () => {
-	if (!apollo) return;
+	if (!apollo.value) return;
 
-	apollo
+	apollo.value
 		.query<twitchUserCardQuery.Response, twitchUserCardQuery.Variables>({
 			query: twitchUserCardQuery,
 			variables: {
